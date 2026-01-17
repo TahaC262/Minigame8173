@@ -11,9 +11,11 @@ let gameActive = false;
 let score = 0;
 let charIndex = 0;
 
-const hikaye = "Yıl 2026... Sistem çökmek üzere. Taha ve Gemini, çekirdekte hapsolmuş son veri paketini taşıyor. Güvenlik duvarları üzerinize geliyor. Kaçmak için sadece sınırlı vaktiniz var. Hazır mısın?";
+// Senin konumun (Ekranın ortasında başlar)
+let player = { x: canvas.width / 2, y: canvas.height / 2, size: 20 };
 
-// Daktilo Efekti
+const hikaye = "Yıl 2026... Sistem çökmek üzere. Taha ve Gemini son veri paketini taşıyor. Kare duvarlardan parmağınla kaç! Hazır mısın?";
+
 function typeWriter() {
     if (charIndex < hikaye.length) {
         storyText.innerHTML += hikaye.charAt(charIndex);
@@ -23,7 +25,6 @@ function typeWriter() {
         startBtn.style.display = "block";
     }
 }
-
 typeWriter();
 
 startBtn.onclick = () => {
@@ -31,7 +32,14 @@ startBtn.onclick = () => {
     initGame();
 };
 
-// --- Oyun Motoru Nesneleri ---
+// DOKUNMATİK KONTROL: Parmağını nereye koyarsan karakter oraya gider
+window.addEventListener('touchmove', (e) => {
+    if(!gameActive) return;
+    player.x = e.touches[0].clientX;
+    player.y = e.touches[0].clientY;
+    e.preventDefault(); 
+}, {passive: false});
+
 let stars = [];
 let obstacles = [];
 
@@ -39,8 +47,9 @@ function initGame() {
     gameActive = true;
     score = 0;
     obstacles = [];
-    stars = [];
-    for(let i=0; i<100; i++) {
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+    for(let i=0; i<80; i++) {
         stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, z: Math.random()*canvas.width});
     }
     gameLoop();
@@ -48,16 +57,15 @@ function initGame() {
 
 function update() {
     stars.forEach(s => {
-        s.z -= 8;
+        s.z -= 10;
         if(s.z <= 0) s.z = canvas.width;
     });
 
-    if(Math.random() < 0.04) {
+    if(Math.random() < 0.05) {
         obstacles.push({
             x: Math.random()*canvas.width - canvas.width/2,
             y: Math.random()*canvas.height - canvas.height/2,
-            z: canvas.width,
-            size: 20
+            z: canvas.width
         });
     }
 
@@ -68,8 +76,12 @@ function update() {
             score += 10;
         }
         
-        // Çarpışma Kontrolü (Basitleştirilmiş)
-        if(o.z < 50 && Math.abs(o.x) < 50 && Math.abs(o.y) < 50) {
+        // ÇARPIŞMA KONTROLÜ
+        let ox = o.x * (canvas.width/o.z) + canvas.width/2;
+        let oy = o.y * (canvas.width/o.z) + canvas.height/2;
+        let oSize = (1 - o.z/canvas.width) * 200;
+
+        if(o.z < 150 && Math.abs(ox - player.x) < oSize/3 && Math.abs(oy - player.y) < oSize/3) {
             endGame();
         }
     });
@@ -79,6 +91,7 @@ function draw() {
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Yıldızlar
     stars.forEach(s => {
         let x = (s.x - canvas.width/2) * (canvas.width/s.z) + canvas.width/2;
         let y = (s.y - canvas.height/2) * (canvas.width/s.z) + canvas.height/2;
@@ -87,14 +100,23 @@ function draw() {
         ctx.fillRect(x, y, size, size);
     });
 
+    // Engeller (Kareler)
     obstacles.forEach(o => {
         let x = o.x * (canvas.width/o.z) + canvas.width/2;
         let y = o.y * (canvas.width/o.z) + canvas.height/2;
-        let size = (1 - o.z/canvas.width) * 150;
+        let size = (1 - o.z/canvas.width) * 200;
         ctx.strokeStyle = "#0ff";
         ctx.lineWidth = 2;
         ctx.strokeRect(x - size/2, y - size/2, size, size);
     });
+
+    // SEN (Karakterin - Parlayan bir üçgen)
+    ctx.fillStyle = "#0f0";
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y - 15);
+    ctx.lineTo(player.x - 15, player.y + 15);
+    ctx.lineTo(player.x + 15, player.y + 15);
+    ctx.fill();
 
     ctx.fillStyle = "#0f0";
     ctx.font = "16px monospace";
@@ -112,21 +134,14 @@ function endGame() {
     gameActive = false;
     ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ff0000";
+    ctx.fillStyle = "#f00";
     ctx.font = "30px monospace";
-    ctx.fillText("SİSTEM ÇÖKTÜ!", canvas.width/2, canvas.height/2 - 60);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "22px monospace";
-    ctx.fillText("Teşekkürler Yasin", canvas.width/2, canvas.height/2);
-
-    ctx.fillStyle = "#00ffff";
-    ctx.font = "18px monospace";
-    ctx.fillText("Geliştirici: TAHA CENK", canvas.width/2, canvas.height/2 + 50);
-    
-    setTimeout(() => {
-        location.reload();
-    }, 5000);
+    ctx.fillText("SİSTEM ÇÖKTÜ!", canvas.width/2, canvas.height/2 - 40);
+    ctx.fillStyle = "#fff";
+    ctx.font = "20px monospace";
+    ctx.fillText("Teşekkürler Yasin", canvas.width/2, canvas.height/2 + 20);
+    ctx.fillStyle = "#0ff";
+    ctx.fillText("Geliştirici: TAHA CENK", canvas.width/2, canvas.height/2 + 60);
+    setTimeout(() => { location.reload(); }, 4000);
 }
