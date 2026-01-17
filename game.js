@@ -230,3 +230,42 @@ function onResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
+function updateRoad() {
+    const first = roadSegments[0].mesh;
+    const dx = first.position.x - car.position.x;
+    const dz = first.position.z - car.position.z;
+
+    if (Math.sqrt(dx * dx + dz * dz) > segmentSize * 2) {
+        const last = roadSegments[roadSegments.length - 1];
+        const newAngle = last.angle + (Math.random() - 0.5) * 0.08;
+
+        const newX = last.mesh.position.x + Math.sin(newAngle) * segmentSize;
+        const newZ = last.mesh.position.z - Math.cos(newAngle) * segmentSize;
+
+        scene.remove(first);
+        roadSegments.shift();
+
+        const seg = createRoadSegment(newX, newZ, newAngle);
+        roadSegments.push(seg);
+    }
+}
+
+function spawnTrees() {
+    const zPos = car.position.z - 60;
+    for (let side of [-1, 1]) {
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.15, 0.15, 1),
+            new THREE.MeshStandardMaterial({ color: 0x8b5a2b })
+        );
+        trunk.position.set(car.position.x + side * 10, 0.5, zPos);
+
+        const leaves = new THREE.Mesh(
+            new THREE.SphereGeometry(0.6, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0x2ecc71 })
+        );
+        leaves.position.set(car.position.x + side * 10, 1.4, zPos);
+
+        scene.add(trunk);
+        scene.add(leaves);
+    }
+}
