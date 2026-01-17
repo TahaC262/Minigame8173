@@ -3,24 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zombi Evi: Kat 1</title>
+    <title>Siber Zombi Evi 2.5D</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #222; font-family: 'Courier New', monospace; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #f00; font-weight: bold; z-index: 10; }
-        #weapon { 
-            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-            width: 200px; height: auto; pointer-events: none; z-index: 5;
-        }
-        canvas { display: block; background: #000; }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #0f0; font-size: 24px; pointer-events: none;
-        }
+        body { margin: 0; overflow: hidden; background: #000; color: #0f0; font-family: 'Courier New', monospace; }
+        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #0f0; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f00; font-size: 24px; pointer-events: none; z-index: 5; }
+        #weapon { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 120px; transition: 0.1s; pointer-events: none; }
+        canvas { display: block; }
+        .flash { animation: flash-hit 0.1s; }
+        @keyframes flash-hit { from { background: rgba(255,0,0,0.5); } to { background: transparent; } }
     </style>
 </head>
-<body>
-    <div id="ui">KAT: <span id="floor">1</span> | CAN: <span id="hp">100</span></div>
-    <div id="crosshair">+</div>
+<body id="body">
+    <div id="ui">
+        <b>DURUM: SIZMA DEVAM EDİYOR</b><br>
+        KAT: <span id="floor">1</span>/5 | CAN: %<span id="hp">100</span> | SKOR: <span id="score">0</span>
+    </div>
+    <div id="crosshair">⊹</div>
     <div id="weapon">🔫</div>
     <canvas id="gameCanvas"></canvas>
     <script src="game.js"></script>
