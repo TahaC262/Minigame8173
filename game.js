@@ -3,71 +3,82 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let player = { x: 2, y: 2, dir: 0 };
-let lastX = 0;
-let isMoving = false;
-
-// Ev Haritası (1: Duvar, 0: Oda)
-const world = [
+let player = { x: 2, y: 2, dir: 0, hp: 100 };
+let map = [
     [1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,0,1,1,1,0,1],
+    [1,0,1,1,0,0,1,1,0,1],
     [1,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1]
 ];
 
-// DOKUNMATİK KONTROLLER (Bakış ve Ateş)
+let enemies = [{x: 7, y: 2.5, alive: true, d: 0}];
+let lastX = 0;
+
+// KONTROLLER: Sürükle (Bakış), Tıkla (İlerle & Ateş)
 window.addEventListener('touchstart', (e) => {
     lastX = e.touches[0].clientX;
-    isMoving = true;
+    movePlayer(); // Tıklayınca ileri gider
+    shoot(); // Tıklayınca ateş eder
 });
 
 window.addEventListener('touchmove', (e) => {
-    let touchX = e.touches[0].clientX;
-    let deltaX = touchX - lastX;
-    
-    // Parmağı sağa çekince sağa, sola çekince sola bak
-    player.dir += deltaX * 0.005; 
-    lastX = touchX;
-    isMoving = false; // Eğer parmak hareket ediyorsa sadece bakıyordur
-});
+    e.preventDefault();
+    let dx = e.touches[0].clientX - lastX;
+    player.dir += dx * 0.01; // Kafa sağa sola döner
+    lastX = e.touches[0].clientX;
+}, {passive: false});
 
-window.addEventListener('touchend', (e) => {
-    // Eğer parmak hiç kaydırılmadan bırakıldıysa bu bir "Ateş" komutudur
-    if (isMoving) {
-        shootEffect();
+function movePlayer() {
+    let nextX = player.x + Math.cos(player.dir) * 0.3;
+    let nextY = player.y + Math.sin(player.dir) * 0.3;
+    if(map[Math.floor(nextY)][Math.floor(nextX)] === 0) {
+        player.x = nextX; player.y = nextY;
     }
-});
+}
 
-function shootEffect() {
-    const weapon = document.getElementById('weapon');
-    weapon.style.transform = "translateX(-50%) translateY(-30px) scale(1.1)";
-    setTimeout(() => {
-        weapon.style.transform = "translateX(-50%) translateY(0) scale(1)";
-    }, 100);
-    console.log("Ateş edildi!");
+function shoot() {
+    enemies.forEach(en => {
+        if(en.alive && en.d < 2) en.alive = false;
+    });
 }
 
 function render() {
-    ctx.fillStyle = "black"; ctx.fillRect(0,0,canvas.width, canvas.height);
+    ctx.fillStyle = "#000"; ctx.fillRect(0,0,canvas.width, canvas.height);
     
-    // RAYCASTING (3D Duvarlar)
-    const numRays = 100;
-    for(let i=0; i<numRays; i++) {
-        let rayAngle = (player.dir - 0.5) + (i / numRays);
-        let x = player.x, y = player.y;
-        let d = 0;
-        
-        while(world[Math.floor(y)] && world[Math.floor(y)][Math.floor(x)] === 0 && d < 10) {
-            x += Math.cos(rayAngle) * 0.1;
-            y += Math.sin(rayAngle) * 0.1;
-            d += 0.1;
+    // Zemin ve Tavan
+    ctx.fillStyle = "#111"; ctx.fillRect(0, canvas.height/2, canvas.width, canvas.height/2);
+
+    // DUVARLAR (Raycasting)
+    const res = 120;
+    for(let i=0; i<res; i++) {
+        let angle = (player.dir - 0.5) + (i/res);
+        let x = player.x, y = player.y, dist = 0;
+        while(map[Math.floor(y)][Math.floor(x)] === 0 && dist < 12) {
+            x += Math.cos(angle)*0.1; y += Math.sin(angle)*0.1; dist += 0.1;
         }
-        
-        let h = canvas.height / (d * Math.cos(rayAngle - player.dir));
-        ctx.fillStyle = `rgb(0, ${200 - d * 20}, 0)`;
-        ctx.fillRect(i * (canvas.width / numRays), (canvas.height - h) / 2, canvas.width / numRays + 1, h);
+        let h = canvas.height / (dist * Math.cos(angle - player.dir));
+        ctx.fillStyle = `rgb(0, ${150 - dist*10}, 0)`;
+        ctx.fillRect(i*(canvas.width/res), (canvas.height-h)/2, canvas.width/res+1, h);
     }
+
+    // ZOMBİLER (Kırmızı Karanlık Silüetler)
+    enemies.forEach(en => {
+        if(!en.alive) return;
+        let dx = en.x - player.x, dy = en.y - player.y;
+        en.d = Math.sqrt(dx*dx + dy*dy);
+        let angle = Math.atan2(dy, dx) - player.dir;
+        if(angle < -Math.PI) angle += 2*Math.PI;
+        if(angle > Math.PI) angle -= 2*Math.PI;
+
+        if(Math.abs(angle) < 0.5) {
+            let sx = (angle + 0.5) * canvas.width;
+            let sh = canvas.height / en.d;
+            ctx.fillStyle = "#400"; // Koyu kırmızı zombi gövdesi
+            ctx.fillRect(sx - sh/4, canvas.height/2 - sh/2, sh/2, sh);
+        }
+    });
+
     requestAnimationFrame(render);
 }
 render();

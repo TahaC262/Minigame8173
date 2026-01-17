@@ -3,26 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siber Operasyon: 3D Konut</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
-        #crosshair {
-            position: fixed; top: 50%; left: 50%;
-            width: 20px; height: 20px;
-            border: 2px solid #f00; border-radius: 50%;
-            transform: translate(-50%, -50%); z-index: 100;
-        }
-        #ui {
-            position: fixed; top: 20px; left: 20px;
-            color: #0f0; font-family: monospace; z-index: 100;
-            background: rgba(0,0,0,0.7); padding: 10px;
-        }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #hud { position: fixed; top: 10px; left: 10px; color: #f00; z-index: 10; font-size: 18px; text-shadow: 2px 2px #000; }
+        #crosshair { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 24px; z-index: 5; }
+        #weapon { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 200px; height: 150px; 
+                  background: linear-gradient(to top, #222, #444); border-radius: 20px 20px 0 0; z-index: 8; }
     </style>
 </head>
 <body>
-    <div id="ui">KAT: 1 | CAN: %100 | DURUM: SIZMA DEVAM EDİYOR</div>
-    <div id="crosshair"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <div id="hud">KAT: 1 | CAN: %100 | SKOR: 0</div>
+    <div id="crosshair">+</div>
+    <div id="weapon"></div>
+    <canvas id="gameCanvas"></canvas>
     <script src="game.js"></script>
 </body>
 </html>
