@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galaksi Savunucusu</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0a0a2a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Press Start 2P', cursive; color: white; user-select: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); /* Piksel fontu */
+
+        canvas { background: linear-gradient(to bottom, #000000, #1a0f30, #2c1a40); border: 2px solid #5a3a70; box-shadow: 0 0 20px rgba(100, 50, 150, 0.7); touch-action: none; /* Dokunmatik kaydırmayı engeller */ }
+
+        #game-ui { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 5px; }
+        #game-ui div { background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; font-size: 14px; display: flex; align-items: center; }
+        #game-ui img { width: 20px; height: 20px; margin-right: 5px; } /* İkonlar için */
+
+        #game-over-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: none; /* Başlangıçta gizli */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            z-index: 100;
+        }
+        #game-over-screen h1 { font-size: 40px; margin-bottom: 20px; color: #ffeb3b; text-shadow: 0 0 10px #ffeb3b; }
+        #game-over-screen p { font-size: 20px; margin-bottom: 15px; }
+        #restart-button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-family: 'Press Start 2P', cursive;
+        }
+        #restart-button:hover { background: #45a049; }
+
+    </style>
+</head>
+<body>
+    <div id="game-ui">
+<div style="position: absolute; bottom: 10px; right: 10px; font-size: 10px; opacity: 0.7;">
+    Oyunu Yapan: <b>Taha C.</b>
+</div>
+
+        <div><img src="https://i.ibb.co/hK3D7pD/coin.png" alt="Puan"> Puan: <span id="score">0</span></div>
+        <div><img src="https://i.ibb.co/yQ3J01y/heart.png" alt="Can"> Can: <span id="lives">3</span></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="game-over-screen">
+        <h1>OYUN BİTTİ!</h1>
+        <p>Son Puanın: <span id="final-score">0</span></p>
+        <button id="restart-button">Tekrar Oyna</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
+
