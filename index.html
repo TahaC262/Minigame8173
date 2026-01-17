@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Siber Zombi Evi 2.5D</title>
+    <title>Siber Operasyon: 3D Konut</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; color: #0f0; font-family: 'Courier New', monospace; }
-        #ui { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #0f0; }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #f00; font-size: 24px; pointer-events: none; z-index: 5; }
-        #weapon { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 120px; transition: 0.1s; pointer-events: none; }
-        canvas { display: block; }
-        .flash { animation: flash-hit 0.1s; }
-        @keyframes flash-hit { from { background: rgba(255,0,0,0.5); } to { background: transparent; } }
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        #crosshair {
+            position: fixed; top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            border: 2px solid #f00; border-radius: 50%;
+            transform: translate(-50%, -50%); z-index: 100;
+        }
+        #ui {
+            position: fixed; top: 20px; left: 20px;
+            color: #0f0; font-family: monospace; z-index: 100;
+            background: rgba(0,0,0,0.7); padding: 10px;
+        }
     </style>
 </head>
-<body id="body">
-    <div id="ui">
-        <b>DURUM: SIZMA DEVAM EDİYOR</b><br>
-        KAT: <span id="floor">1</span>/5 | CAN: %<span id="hp">100</span> | SKOR: <span id="score">0</span>
-    </div>
-    <div id="crosshair">⊹</div>
-    <div id="weapon">🔫</div>
-    <canvas id="gameCanvas"></canvas>
+<body>
+    <div id="ui">KAT: 1 | CAN: %100 | DURUM: SIZMA DEVAM EDİYOR</div>
+    <div id="crosshair"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
