@@ -1,241 +1,132 @@
-// === Başlangıç Ayarları ===
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const scoreElement = document.getElementById('score');
-const livesElement = document.getElementById('lives');
-const gameOverScreen = document.getElementById('game-over-screen');
-const finalScoreElement = document.getElementById('final-score');
-const restartButton = document.getElementById('restart-button');
+const storyText = document.getElementById('story-text');
+const startBtn = document.getElementById('start-btn');
+const storyScreen = document.getElementById('story-screen');
 
-// Canvas boyutlarını mobil ekrana göre ayarla
-canvas.width = window.innerWidth > 600 ? 600 : window.innerWidth * 0.9;
-canvas.height = window.innerHeight > 800 ? 800 : window.innerHeight * 0.9;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let player = {
-    x: canvas.width / 2 - 25,
-    y: canvas.height - 100,
-    width: 50,
-    height: 50,
-    speed: 7,
-    lives: 3,
-    color: '#00FFFF', // Turkuaz uzay gemisi
-    cooldown: 0, // Atış bekleme süresi
-    maxCooldown: 15 // Frame cinsinden
-};
-
-let bullets = [];
-let enemies = [];
-let stars = [];
+let gameActive = false;
 let score = 0;
-let gameOver = false;
-let lastTouchX = player.x; // Mobil kontrol için son dokunma konumu
+let charIndex = 0;
 
-// === Görsel Kaynaklar (Basit Çizimler veya URL'den Emojiler) ===
-// Daha iyi görseller için buraya resim URL'leri yüklenebilir.
-// Şimdilik basit şekiller ve emojiler kullanalım.
-const playerEmoji = '🚀'; // Uzay gemisi emojisi
-const enemyEmoji = '👾'; // Düşman emojisi
-const bulletEmoji = '⚡'; // Mermi emojisi
-const starEmoji = '✨'; // Yıldız emojisi
+const hikaye = "Yıl 2026... Sistem çökmek üzere. Taha ve Gemini, çekirdekte hapsolmuş son veri paketini taşıyor. Güvenlik duvarları üzerinize geliyor. Kaçmak için sadece sınırlı vaktiniz var. Hazır mısın?";
 
-function drawObject(obj, emoji) {
-    ctx.font = `${obj.width}px Arial`; // Emoji boyutu için
-    ctx.fillText(emoji, obj.x, obj.y + obj.height);
+// Daktilo Efekti
+function typeWriter() {
+    if (charIndex < hikaye.length) {
+        storyText.innerHTML += hikaye.charAt(charIndex);
+        charIndex++;
+        setTimeout(typeWriter, 50);
+    } else {
+        startBtn.style.display = "block";
+    }
 }
 
-// === Oyun Döngüsü ve Mekanikler ===
-function gameLoop() {
-    if (gameOver) {
-        return; // Oyun bittiyse döngüyü durdur
-    }
+typeWriter();
 
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
+startBtn.onclick = () => {
+    storyScreen.style.display = "none";
+    initGame();
+};
+
+// --- Oyun Motoru Nesneleri ---
+let stars = [];
+let obstacles = [];
+
+function initGame() {
+    gameActive = true;
+    score = 0;
+    obstacles = [];
+    stars = [];
+    for(let i=0; i<100; i++) {
+        stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, z: Math.random()*canvas.width});
+    }
+    gameLoop();
 }
 
 function update() {
-    // Player atış cooldown'u
-    if (player.cooldown > 0) {
-        player.cooldown--;
-    }
-
-    // Mermi güncelleme
-    bullets.forEach((bullet, index) => {
-        bullet.y -= bullet.speed;
-        if (bullet.y < 0) {
-            bullets.splice(index, 1);
-        }
+    stars.forEach(s => {
+        s.z -= 8;
+        if(s.z <= 0) s.z = canvas.width;
     });
 
-    // Düşman oluşturma
-    if (Math.random() < 0.02 + (score / 2000)) { // Skor arttıkça düşman daha sık çıkar
-        let size = Math.random() * 40 + 30;
-        enemies.push({
-            x: Math.random() * (canvas.width - size),
-            y: -size,
-            width: size,
-            height: size,
-            speed: Math.random() * 2 + 1 + (score / 1000), // Skor arttıkça düşman hızlanır
-            health: 1
+    if(Math.random() < 0.04) {
+        obstacles.push({
+            x: Math.random()*canvas.width - canvas.width/2,
+            y: Math.random()*canvas.height - canvas.height/2,
+            z: canvas.width,
+            size: 20
         });
     }
 
-    // Düşman güncelleme ve Player ile çarpışma
-    enemies.forEach((enemy, eIndex) => {
-        enemy.y += enemy.speed;
-
-        // Player ile çarpışma
-        if (
-            player.x < enemy.x + enemy.width &&
-            player.x + player.width > enemy.x &&
-            player.y < enemy.y + enemy.height &&
-            player.y + player.height > enemy.y
-        ) {
-            player.lives--;
-            livesElement.innerText = player.lives;
-            enemies.splice(eIndex, 1); // Düşman yok olsun
-            if (player.lives <= 0) {
-                endGame();
-            }
+    obstacles.forEach((o, i) => {
+        o.z -= 15;
+        if(o.z <= 0) {
+            obstacles.splice(i, 1);
+            score += 10;
         }
-
-        // Mermi ile düşman çarpışması
-        bullets.forEach((bullet, bIndex) => {
-            if (
-                bullet.x < enemy.x + enemy.width &&
-                bullet.x + bullet.width > enemy.x &&
-                bullet.y < enemy.y + enemy.height &&
-                bullet.y + bullet.height > enemy.y
-            ) {
-                enemy.health--;
-                bullets.splice(bIndex, 1); // Mermi yok olsun
-                if (enemy.health <= 0) {
-                    enemies.splice(eIndex, 1); // Düşman yok olsun
-                    score += 10;
-                    scoreElement.innerText = score;
-                    // Yıldız düşürme şansı
-                    if (Math.random() < 0.3) {
-                        stars.push({ x: enemy.x, y: enemy.y, width: 20, height: 20, speed: 3 });
-                    }
-                }
-            }
-        });
-
-        if (enemy.y > canvas.height) {
-            enemies.splice(eIndex, 1);
-        }
-    });
-
-    // Yıldız güncelleme ve toplama
-    stars.forEach((star, index) => {
-        star.y += star.speed;
-        if (
-            player.x < star.x + star.width &&
-            player.x + player.width > star.x &&
-            player.y < star.y + star.height &&
-            player.y + player.height > star.y
-        ) {
-            score += 50; // Yıldız toplama puanı
-            scoreElement.innerText = score;
-            stars.splice(index, 1);
-        }
-        if (star.y > canvas.height) {
-            stars.splice(index, 1);
+        
+        // Çarpışma Kontrolü (Basitleştirilmiş)
+        if(o.z < 50 && Math.abs(o.x) < 50 && Math.abs(o.y) < 50) {
+            endGame();
         }
     });
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Ekranı temizle
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Player'ı çiz
-    drawObject(player, playerEmoji);
+    stars.forEach(s => {
+        let x = (s.x - canvas.width/2) * (canvas.width/s.z) + canvas.width/2;
+        let y = (s.y - canvas.height/2) * (canvas.width/s.z) + canvas.height/2;
+        let size = (1 - s.z/canvas.width) * 3;
+        ctx.fillStyle = "white";
+        ctx.fillRect(x, y, size, size);
+    });
 
-    // Mermileri çiz
-    bullets.forEach(bullet => drawObject(bullet, bulletEmoji));
+    obstacles.forEach(o => {
+        let x = o.x * (canvas.width/o.z) + canvas.width/2;
+        let y = o.y * (canvas.width/o.z) + canvas.height/2;
+        let size = (1 - o.z/canvas.width) * 150;
+        ctx.strokeStyle = "#0ff";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - size/2, y - size/2, size, size);
+    });
 
-    // Düşmanları çiz
-    enemies.forEach(enemy => drawObject(enemy, enemyEmoji));
-
-    // Yıldızları çiz
-    stars.forEach(star => drawObject(star, starEmoji));
+    ctx.fillStyle = "#0f0";
+    ctx.font = "16px monospace";
+    ctx.fillText("VERİ: " + score, 20, 30);
 }
 
-// === Kontroller ===
-// Dokunmatik ekran kontrolü
-canvas.addEventListener('touchstart', (e) => {
-    if (gameOver) return;
-    lastTouchX = e.touches[0].clientX; // İlk dokunuş noktası
-    shootBullet(); // Dokunur dokunmaz ateş et
-});
-
-canvas.addEventListener('touchmove', (e) => {
-    if (gameOver) return;
-    let touchX = e.touches[0].clientX;
-    let dx = touchX - lastTouchX;
-    player.x += dx;
-
-    // Ekran sınırları içinde kalmasını sağla
-    if (player.x < 0) player.x = 0;
-    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-
-    lastTouchX = touchX; // Yeni dokunuş noktasını güncelle
-});
-
-canvas.addEventListener('touchend', () => {
-    // Belki burada araba durabilir veya bir sonraki atış için zamanlayıcı başlatılabilir
-});
-
-// Klavye kontrolü (Eğer Termux'u klavyeyle kullanıyorsan işe yarar)
-document.addEventListener('keydown', (e) => {
-    if (gameOver) return;
-    if (e.key === 'ArrowLeft') {
-        player.x -= player.speed;
-    } else if (e.key === 'ArrowRight') {
-        player.x += player.speed;
-    } else if (e.key === ' ') { // Space tuşu ile ateş et
-        shootBullet();
-    }
-
-    // Ekran sınırları içinde kalmasını sağla
-    if (player.x < 0) player.x = 0;
-    if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-});
-
-function shootBullet() {
-    if (player.cooldown <= 0) {
-        bullets.push({
-            x: player.x + player.width / 2 - 5,
-            y: player.y,
-            width: 10,
-            height: 20,
-            speed: 10,
-            color: '#FFD700' // Altın sarısı mermi
-        });
-        player.cooldown = player.maxCooldown; // Cooldown'u sıfırla
-    }
+function gameLoop() {
+    if(!gameActive) return;
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
 }
 
 function endGame() {
-    gameOver = true;
-    finalScoreElement.innerText = score;
+    gameActive = false;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ff0000";
+    ctx.font = "30px monospace";
+    ctx.fillText("SİSTEM ÇÖKTÜ!", canvas.width/2, canvas.height/2 - 60);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "22px monospace";
+    ctx.fillText("Teşekkürler Yasin", canvas.width/2, canvas.height/2);
+
+    ctx.fillStyle = "#00ffff";
+    ctx.font = "18px monospace";
+    ctx.fillText("Geliştirici: TAHA CENK", canvas.width/2, canvas.height/2 + 50);
     
-    // Oyun bitti ekranına ismini ekleyelim
-    const devCredit = document.createElement("p");
-    devCredit.innerHTML = "Geliştirici: <span style='color:#00ffff'>Taha Cenk</span>";
-    devCredit.style.fontSize = "14px";
-    devCredit.style.marginTop = "20px";
-    
-    // Eğer daha önce eklenmediyse ekle
-    if(!gameOverScreen.querySelector('.dev-name')){
-        devCredit.className = 'dev-name';
-        gameOverScreen.insertBefore(devCredit, restartButton);
-    }
-    
-    gameOverScreen.style.display = 'flex';
+    setTimeout(() => {
+        location.reload();
+    }, 5000);
 }
-
-
-// Oyunu başlat
-gameLoop();
