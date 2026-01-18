@@ -1,271 +1,144 @@
-let scene, camera, renderer;
-let car;
-let speed = 0.35;
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let running = false;
 let score = 0;
+let speed = 5;
+let mapType = 1;
+let playerX = 0;
+let roadOffset = 0;
+let roadCurve = 0;
+let obstacles = [];
+let rivals = [];
 
-let turnLeft = false;
-let turnRight = false;
+function startGame(map) {
+  mapType = map;
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("score").style.display = "block";
+  document.getElementById("controls").style.display = "flex";
+  running = true;
+  score = 0;
+  playerX = 0;
+  roadOffset = 0;
+  roadCurve = 0;
+  obstacles = [];
+  rivals = [];
 
-let roadSegments = [];
-let segmentSize = 20;
+  // 4 araba (1 oyuncu + 3 rakip)
+  for (let i = 0; i < 3; i++) {
+    rivals.push({ x: Math.random() * 400 - 200, z: 1000 + i * 500 });
+  }
 
-let directionAngle = 0;
-let carZ = 0;
+  loop();
+}
 
-let enemyCars = [];
-let trees = [];
+function loop() {
+  if (!running) return;
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
 
-let gameState = "menu"; // menu | playing | gameover
+function update() {
+  roadOffset += speed;
+  score += 1;
 
-init();
-animate();
+  // Map'e göre viraj
+  if (mapType === 1) {
+    roadCurve = Math.sin(roadOffset / 200) * 150;
+  } else {
+    roadCurve = Math.cos(roadOffset / 300) * 200;
+  }
 
-function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x7ec8e3);
+  // Engeller
+  if (Math.random() < 0.02) {
+    obstacles.push({ x: Math.random() * 400 - 200, z: 1000 });
+  }
 
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    document.body.appendChild(renderer.domElement);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    const sun = new THREE.DirectionalLight(0xffffff, 1);
-    sun.position.set(5, 10, 5);
-    sun.castShadow = true;
-    scene.add(sun);
-
-    car = createCar(Math.random());
-    car.position.y = 0.25;
-    scene.add(car);
-
-    let x = 0, z = 0, angle = 0;
-    for (let i = 0; i < 40; i++) {
-        const seg = createRoadSegment(x, z, angle);
-        roadSegments.push(seg);
-        x += Math.sin(angle) * segmentSize;
-        z -= Math.cos(angle) * segmentSize;
-        angle += (Math.random() - 0.5) * 0.05;
+  for (let o of obstacles) {
+    o.z -= speed * 10;
+    if (o.z < 50 && Math.abs(o.x - playerX) < 50) {
+      running = false;
+      gameOver();
     }
+  }
+  obstacles = obstacles.filter(o => o.z > 0);
 
-    document.getElementById("left").ontouchstart = () => turnLeft = true;
-    document.getElementById("left").ontouchend = () => turnLeft = false;
-    document.getElementById("right").ontouchstart = () => turnRight = true;
-    document.getElementById("right").ontouchend = () => turnRight = false;
-
-    setInterval(() => {
-        if (gameState === "playing") spawnEnemyCar();
-    }, 1600);
-
-    setInterval(() => {
-        if (gameState === "playing") spawnTrees();
-    }, 900);
-
-    createUI();
-    window.addEventListener("resize", onResize);
-}
-
-function createUI() {
-    const ui = document.createElement("div");
-    ui.id = "ui";
-    ui.style = `
-        position:fixed;
-        top:0;left:0;
-        width:100%;height:100%;
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        background:rgba(0,0,0,0.6);
-        color:white;
-        font-family:Arial;
-        z-index:10;
-        text-align:center;
-    `;
-    document.body.appendChild(ui);
-    showMenu();
-}
-
-function showMenu() {
-    gameState = "menu";
-    document.getElementById("ui").innerHTML = `
-        <h1 style="font-size:48px;letter-spacing:4px;">RETRO RACER</h1>
-        <button onclick="startGame()" style="font-size:22px;padding:15px 40px;">START</button>
-    `;
-}
-
-function showGameOver() {
-    gameState = "gameover";
-    document.getElementById("ui").innerHTML = `
-        <h1 style="font-size:42px;">GAME OVER</h1>
-        <p style="font-size:22px;">Skor: ${Math.floor(score)}</p>
-        <button onclick="location.reload()" style="font-size:20px;padding:12px 30px;">RESTART</button>
-    `;
-}
-
-function startGame() {
-    gameState = "playing";
-    document.getElementById("ui").style.display = "none";
-}
-
-function createCar(typeSeed) {
-    const g = new THREE.Group();
-    let color = typeSeed < 0.33 ? 0xff3b3b : typeSeed < 0.66 ? 0x2f80ff : 0x2ecc71;
-    let length = typeSeed < 0.33 ? 2.3 : typeSeed < 0.66 ? 2.6 : 2.0;
-
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1.2, 0.4, length),
-        new THREE.MeshStandardMaterial({ color, metalness: 0.3, roughness: 0.4 })
-    );
-    body.position.y = 0.35;
-    g.add(body);
-
-    const cabin = new THREE.Mesh(
-        new THREE.BoxGeometry(0.75, 0.3, length * 0.5),
-        new THREE.MeshStandardMaterial({ color: 0x111111 })
-    );
-    cabin.position.set(0, 0.6, -0.2);
-    g.add(cabin);
-
-    const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.3, 10);
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-
-    [[-0.6,0.2,0.7],[0.6,0.2,0.7],[-0.6,0.2,-0.7],[0.6,0.2,-0.7]].forEach(p=>{
-        const w = new THREE.Mesh(wheelGeo, wheelMat);
-        w.rotation.z = Math.PI/2;
-        w.position.set(...p);
-        g.add(w);
-    });
-
-    return g;
-}
-
-function createRoadSegment(x, z, angle) {
-    const group = new THREE.Group();
-    const road = new THREE.Mesh(
-        new THREE.PlaneGeometry(20, segmentSize),
-        new THREE.MeshStandardMaterial({ color: 0x2b2b2b })
-    );
-    road.rotation.x = -Math.PI / 2;
-    group.add(road);
-
-    const line = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.3, segmentSize),
-        new THREE.MeshStandardMaterial({ color: 0xffffff })
-    );
-    line.rotation.x = -Math.PI / 2;
-    line.position.y = 0.01;
-    group.add(line);
-
-    group.rotation.z = angle;
-    group.position.set(x, 0, z);
-    scene.add(group);
-    return { mesh: group, angle };
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    if (gameState !== "playing") {
-        renderer.render(scene, camera);
-        return;
+  // Rakip arabalar
+  for (let r of rivals) {
+    r.z -= speed * 8;
+    if (r.z < 100) {
+      r.z = 1000 + Math.random() * 500;
+      r.x = Math.random() * 400 - 200;
     }
+  }
 
-    speed += 0.00015;
-
-    if (turnLeft) directionAngle += 0.002;
-    if (turnRight) directionAngle -= 0.002;
-
-    car.rotation.y = directionAngle;
-    car.position.x += Math.sin(directionAngle) * speed;
-    carZ -= Math.cos(directionAngle) * speed;
-    car.position.z = carZ;
-
-    camera.position.x = car.position.x - Math.sin(directionAngle) * 4;
-    camera.position.z = car.position.z + Math.cos(directionAngle) * 4;
-    camera.position.y = 1.6;
-    camera.lookAt(car.position);
-
-    updateEnemies();
-    updateRoad();
-
-    score += speed;
-    document.getElementById("score").innerText = "Skor: " + Math.floor(score);
-    document.getElementById("speed").innerText = "Hız: " + Math.floor(speed * 200) + " km/s";
-
-    renderer.render(scene, camera);
+  document.getElementById("score").innerText = "Puan: " + score;
 }
 
-function spawnEnemyCar() {
-    const enemy = createCar(Math.random());
-    enemy.position.y = 0.25;
-    enemy.position.x = car.position.x + (Math.random() * 6 - 3);
-    enemy.position.z = car.position.z - 50;
-    scene.add(enemy);
-    enemyCars.push(enemy);
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Yol
+  for (let i = 0; i < 30; i++) {
+    const z = (i * 100 + roadOffset) % 3000;
+    const scale = 300 / z;
+    const roadWidth = 200 * scale;
+    const y = canvas.height - i * 20;
+    const offset = roadCurve * scale;
+    ctx.fillStyle = i % 2 === 0 ? "#222" : "#555";
+    ctx.fillRect(canvas.width / 2 - roadWidth / 2 + offset, y, roadWidth, 20);
+  }
+
+  // Rakipler
+  for (let r of rivals) {
+    const scale = 300 / r.z;
+    const x = canvas.width / 2 + (r.x + roadCurve) * scale;
+    const y = canvas.height - 200 * scale;
+    const size = 80 * scale;
+    drawCar(x, y, size, "red");
+  }
+
+  // Engeller
+  for (let o of obstacles) {
+    const scale = 300 / o.z;
+    const x = canvas.width / 2 + (o.x + roadCurve) * scale;
+    const y = canvas.height - 200 * scale;
+    const size = 50 * scale;
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+  }
+
+  // Oyuncu arabası
+  drawCar(canvas.width / 2 + playerX, canvas.height - 100, 60, "#00ff99");
 }
 
-function updateEnemies() {
-    for (let i = enemyCars.length - 1; i >= 0; i--) {
-        const e = enemyCars[i];
-        e.position.z += speed * 0.8;
-
-        if (
-            Math.abs(e.position.z - car.position.z) < 1.5 &&
-            Math.abs(e.position.x - car.position.x) < 1
-        ) {
-            document.getElementById("ui").style.display = "flex";
-            showGameOver();
-        }
-    }
+function drawCar(x, y, size, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x - size / 2, y);
+  ctx.lineTo(x + size / 2, y);
+  ctx.lineTo(x + size / 3, y + size);
+  ctx.lineTo(x - size / 3, y + size);
+  ctx.closePath();
+  ctx.fill();
 }
 
-function spawnTrees() {}
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft") playerX -= 20;
+  if (e.key === "ArrowRight") playerX += 20;
+});
 
-function updateRoad() {}
+document.getElementById("left").addEventListener("touchstart", () => playerX -= 20);
+document.getElementById("right").addEventListener("touchstart", () => playerX += 20);
 
-function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-function updateRoad() {
-    const first = roadSegments[0].mesh;
-    const dx = first.position.x - car.position.x;
-    const dz = first.position.z - car.position.z;
-
-    if (Math.sqrt(dx * dx + dz * dz) > segmentSize * 2) {
-        const last = roadSegments[roadSegments.length - 1];
-        const newAngle = last.angle + (Math.random() - 0.5) * 0.08;
-
-        const newX = last.mesh.position.x + Math.sin(newAngle) * segmentSize;
-        const newZ = last.mesh.position.z - Math.cos(newAngle) * segmentSize;
-
-        scene.remove(first);
-        roadSegments.shift();
-
-        const seg = createRoadSegment(newX, newZ, newAngle);
-        roadSegments.push(seg);
-    }
-}
-
-function spawnTrees() {
-    const zPos = car.position.z - 60;
-    for (let side of [-1, 1]) {
-        const trunk = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.15, 0.15, 1),
-            new THREE.MeshStandardMaterial({ color: 0x8b5a2b })
-        );
-        trunk.position.set(car.position.x + side * 10, 0.5, zPos);
-
-        const leaves = new THREE.Mesh(
-            new THREE.SphereGeometry(0.6, 8, 8),
-            new THREE.MeshStandardMaterial({ color: 0x2ecc71 })
-        );
-        leaves.position.set(car.position.x + side * 10, 1.4, zPos);
-
-        scene.add(trunk);
-        scene.add(leaves);
-    }
+function gameOver() {
+  ctx.fillStyle = "rgba(0,0,0,0.8)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#00ff99";
+  ctx.font = "40px Courier New";
+  ctx.fillText("OYUN BİTTİ!", canvas.width / 2 - 100, canvas.height / 2);
+  ctx.font = "20px Courier New";
+  ctx.fillText("Puan: " + score, canvas.width / 2 - 40, canvas.height / 2 + 40);
+  ctx.fillText("Yeniden başlamak için F5’e bas", canvas.width / 2 - 150, canvas.height / 2 + 80);
 }

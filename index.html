@@ -1,64 +1,82 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <title>Retro Racer</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: black;
-            font-family: Arial, sans-serif;
-        }
-
-        #ui {
-            position: absolute;
-            top: 10px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 15px;
-            color: white;
-            font-size: 18px;
-            z-index: 10;
-        }
-
-        #controls {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            display: flex;
-            z-index: 10;
-        }
-
-        .btn {
-            width: 50%;
-            height: 90px;
-            background: rgba(255,255,255,0.15);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 32px;
-            color: white;
-            user-select: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retro Racer 3D</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: black;
+    color: #00ff99;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+  }
+  #menu {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  button {
+    background: #00ff99;
+    border: none;
+    color: black;
+    padding: 10px 20px;
+    font-size: 18px;
+    margin: 5px;
+    cursor: pointer;
+  }
+  #score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(#001, #004);
+  }
+  #controls {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+  }
+  .ctrl-btn {
+    width: 60px;
+    height: 60px;
+    background: #00ff99;
+    border-radius: 10px;
+    color: black;
+    font-size: 30px;
+    line-height: 60px;
+    font-weight: bold;
+    user-select: none;
+  }
+</style>
 </head>
 <body>
+  <div id="menu">
+    <h1>🚗 RETRO RACER 3D 🚗</h1>
+    <p>Yön tuşları veya ekrandaki oklarla kontrol et</p>
+    <p>Bir pist seç:</p>
+    <button onclick="startGame(1)">🏁 MAP 1</button>
+    <button onclick="startGame(2)">🏎️ MAP 2</button>
+  </div>
 
-<div id="ui">
-    <div id="score">Skor: 0</div>
-    <div id="speed">Hız: 0 km/s</div>
-</div>
+  <div id="score" style="display:none;">Puan: 0</div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-<div id="controls">
-    <div class="btn" id="left">◀</div>
-    <div class="btn" id="right">▶</div>
-</div>
+  <div id="controls" style="display:none;">
+    <div class="ctrl-btn" id="left">⬅️</div>
+    <div class="ctrl-btn" id="right">➡️</div>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="game.js"></script>
-
+  <script src="game.js"></script>
 </body>
 </html>
